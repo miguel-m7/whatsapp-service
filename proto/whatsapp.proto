@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package whatsapp;  // Simplificado para apenas whatsapp
+
+option go_package = "/";
+
+
+// Service definition for WhatsApp session management
+service WhatsAppService {
+  // Start a new WhatsApp session and get QR code
+  rpc StartSession(StartSessionRequest) returns (SessionResponse) {}
+  
+  // Check session status by ID
+  rpc CheckSessionStatus(SessionStatusRequest) returns (SessionStatusResponse) {}
+  
+  // Send message and get status
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
+}
+
+// Empty request for starting a new session
+message StartSessionRequest {}
+
+// Response containing session details
+message SessionResponse {
+  string session_id = 1;
+  string qr_code = 2;
+}
+
+// Request to check session status
+message SessionStatusRequest {
+  string session_id = 1;
+}
+
+// Response with session status
+message SessionStatusResponse {
+  bool is_connected = 1;
+  string qr_code = 2;
+}
+
+// Request for sending a message
+message SendMessageRequest {
+  string session_id = 1;
+  string to_phone_number = 2;
+  string message_content = 3;
+}
+
+// Response with message status
+message SendMessageResponse {
+  bool success = 1;
+  string message_id = 2;
+  string status = 3;  // Can be "sent", "delivered", "read", "failed"
+}

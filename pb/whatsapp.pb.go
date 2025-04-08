@@ -61,8 +61,10 @@ func (*StartSessionRequest) Descriptor() ([]byte, []int) {
 // Response containing session details
 type SessionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SessionId     int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	QrCode        string                 `protobuf:"bytes,2,opt,name=qr_code,json=qrCode,proto3" json:"qr_code,omitempty"`
+	Jid           string                 `protobuf:"bytes,3,opt,name=jid,proto3" json:"jid,omitempty"`       // WhatsApp ID of the user
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // Can be "connected", "disconnected", "error"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -97,11 +99,11 @@ func (*SessionResponse) Descriptor() ([]byte, []int) {
 	return file_whatsapp_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SessionResponse) GetSessionId() string {
+func (x *SessionResponse) GetSessionId() int64 {
 	if x != nil {
 		return x.SessionId
 	}
-	return ""
+	return 0
 }
 
 func (x *SessionResponse) GetQrCode() string {
@@ -111,10 +113,24 @@ func (x *SessionResponse) GetQrCode() string {
 	return ""
 }
 
+func (x *SessionResponse) GetJid() string {
+	if x != nil {
+		return x.Jid
+	}
+	return ""
+}
+
+func (x *SessionResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 // Request to check session status
 type SessionStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Jid           string                 `protobuf:"bytes,1,opt,name=jid,proto3" json:"jid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -149,9 +165,9 @@ func (*SessionStatusRequest) Descriptor() ([]byte, []int) {
 	return file_whatsapp_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *SessionStatusRequest) GetSessionId() string {
+func (x *SessionStatusRequest) GetJid() string {
 	if x != nil {
-		return x.SessionId
+		return x.Jid
 	}
 	return ""
 }
@@ -212,7 +228,7 @@ func (x *SessionStatusResponse) GetQrCode() string {
 // Request for sending a message
 type SendMessageRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	SessionId      string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SenderJid      string                 `protobuf:"bytes,1,opt,name=sender_jid,json=senderJid,proto3" json:"sender_jid,omitempty"`
 	ToPhoneNumber  string                 `protobuf:"bytes,2,opt,name=to_phone_number,json=toPhoneNumber,proto3" json:"to_phone_number,omitempty"`
 	MessageContent string                 `protobuf:"bytes,3,opt,name=message_content,json=messageContent,proto3" json:"message_content,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -249,9 +265,9 @@ func (*SendMessageRequest) Descriptor() ([]byte, []int) {
 	return file_whatsapp_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *SendMessageRequest) GetSessionId() string {
+func (x *SendMessageRequest) GetSenderJid() string {
 	if x != nil {
-		return x.SessionId
+		return x.SenderJid
 	}
 	return ""
 }
@@ -336,29 +352,30 @@ var File_whatsapp_proto protoreflect.FileDescriptor
 const file_whatsapp_proto_rawDesc = "" +
 	"\n" +
 	"\x0ewhatsapp.proto\x12\bwhatsapp\"\x15\n" +
-	"\x13StartSessionRequest\"I\n" +
+	"\x13StartSessionRequest\"s\n" +
 	"\x0fSessionResponse\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
-	"\aqr_code\x18\x02 \x01(\tR\x06qrCode\"5\n" +
-	"\x14SessionStatusRequest\x12\x1d\n" +
-	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"S\n" +
+	"session_id\x18\x01 \x01(\x03R\tsessionId\x12\x17\n" +
+	"\aqr_code\x18\x02 \x01(\tR\x06qrCode\x12\x10\n" +
+	"\x03jid\x18\x03 \x01(\tR\x03jid\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\"(\n" +
+	"\x14SessionStatusRequest\x12\x10\n" +
+	"\x03jid\x18\x01 \x01(\tR\x03jid\"S\n" +
 	"\x15SessionStatusResponse\x12!\n" +
 	"\fis_connected\x18\x01 \x01(\bR\visConnected\x12\x17\n" +
 	"\aqr_code\x18\x02 \x01(\tR\x06qrCode\"\x84\x01\n" +
 	"\x12SendMessageRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12&\n" +
+	"sender_jid\x18\x01 \x01(\tR\tsenderJid\x12&\n" +
 	"\x0fto_phone_number\x18\x02 \x01(\tR\rtoPhoneNumber\x12'\n" +
 	"\x0fmessage_content\x18\x03 \x01(\tR\x0emessageContent\"f\n" +
 	"\x13SendMessageResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x02 \x01(\tR\tmessageId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status2\x84\x02\n" +
-	"\x0fWhatsAppService\x12J\n" +
-	"\fStartSession\x12\x1d.whatsapp.StartSessionRequest\x1a\x19.whatsapp.SessionResponse\"\x00\x12W\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status2\x86\x02\n" +
+	"\x0fWhatsAppService\x12L\n" +
+	"\fStartSession\x12\x1d.whatsapp.StartSessionRequest\x1a\x19.whatsapp.SessionResponse\"\x000\x01\x12W\n" +
 	"\x12CheckSessionStatus\x12\x1e.whatsapp.SessionStatusRequest\x1a\x1f.whatsapp.SessionStatusResponse\"\x00\x12L\n" +
 	"\vSendMessage\x12\x1c.whatsapp.SendMessageRequest\x1a\x1d.whatsapp.SendMessageResponse\"\x00B\x03Z\x01/b\x06proto3"
 

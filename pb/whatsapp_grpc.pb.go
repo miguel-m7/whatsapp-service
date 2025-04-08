@@ -31,7 +31,7 @@ const (
 // Service definition for WhatsApp session management
 type WhatsAppServiceClient interface {
 	// Start a new WhatsApp session and get QR code
-	StartSession(ctx context.Context, in *StartSessionRequest, opts ...grpc.CallOption) (*SessionResponse, error)
+	StartSession(ctx context.Context, in *StartSessionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SessionResponse], error)
 	// Check session status by ID
 	CheckSessionStatus(ctx context.Context, in *SessionStatusRequest, opts ...grpc.CallOption) (*SessionStatusResponse, error)
 	// Send message and get status
@@ -46,15 +46,24 @@ func NewWhatsAppServiceClient(cc grpc.ClientConnInterface) WhatsAppServiceClient
 	return &whatsAppServiceClient{cc}
 }
 
-func (c *whatsAppServiceClient) StartSession(ctx context.Context, in *StartSessionRequest, opts ...grpc.CallOption) (*SessionResponse, error) {
+func (c *whatsAppServiceClient) StartSession(ctx context.Context, in *StartSessionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SessionResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SessionResponse)
-	err := c.cc.Invoke(ctx, WhatsAppService_StartSession_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &WhatsAppService_ServiceDesc.Streams[0], WhatsAppService_StartSession_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[StartSessionRequest, SessionResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WhatsAppService_StartSessionClient = grpc.ServerStreamingClient[SessionResponse]
 
 func (c *whatsAppServiceClient) CheckSessionStatus(ctx context.Context, in *SessionStatusRequest, opts ...grpc.CallOption) (*SessionStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -83,7 +92,7 @@ func (c *whatsAppServiceClient) SendMessage(ctx context.Context, in *SendMessage
 // Service definition for WhatsApp session management
 type WhatsAppServiceServer interface {
 	// Start a new WhatsApp session and get QR code
-	StartSession(context.Context, *StartSessionRequest) (*SessionResponse, error)
+	StartSession(*StartSessionRequest, grpc.ServerStreamingServer[SessionResponse]) error
 	// Check session status by ID
 	CheckSessionStatus(context.Context, *SessionStatusRequest) (*SessionStatusResponse, error)
 	// Send message and get status
@@ -98,8 +107,8 @@ type WhatsAppServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedWhatsAppServiceServer struct{}
 
-func (UnimplementedWhatsAppServiceServer) StartSession(context.Context, *StartSessionRequest) (*SessionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StartSession not implemented")
+func (UnimplementedWhatsAppServiceServer) StartSession(*StartSessionRequest, grpc.ServerStreamingServer[SessionResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StartSession not implemented")
 }
 func (UnimplementedWhatsAppServiceServer) CheckSessionStatus(context.Context, *SessionStatusRequest) (*SessionStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckSessionStatus not implemented")
@@ -128,23 +137,16 @@ func RegisterWhatsAppServiceServer(s grpc.ServiceRegistrar, srv WhatsAppServiceS
 	s.RegisterService(&WhatsAppService_ServiceDesc, srv)
 }
 
-func _WhatsAppService_StartSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartSessionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _WhatsAppService_StartSession_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StartSessionRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(WhatsAppServiceServer).StartSession(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WhatsAppService_StartSession_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WhatsAppServiceServer).StartSession(ctx, req.(*StartSessionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(WhatsAppServiceServer).StartSession(m, &grpc.GenericServerStream[StartSessionRequest, SessionResponse]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WhatsAppService_StartSessionServer = grpc.ServerStreamingServer[SessionResponse]
 
 func _WhatsAppService_CheckSessionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionStatusRequest)
@@ -190,10 +192,6 @@ var WhatsAppService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*WhatsAppServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "StartSession",
-			Handler:    _WhatsAppService_StartSession_Handler,
-		},
-		{
 			MethodName: "CheckSessionStatus",
 			Handler:    _WhatsAppService_CheckSessionStatus_Handler,
 		},
@@ -202,6 +200,12 @@ var WhatsAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WhatsAppService_SendMessage_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StartSession",
+			Handler:       _WhatsAppService_StartSession_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "whatsapp.proto",
 }

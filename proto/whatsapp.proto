@@ -8,7 +8,7 @@ option go_package = "/";
 // Service definition for WhatsApp session management
 service WhatsAppService {
   // Start a new WhatsApp session and get QR code
-  rpc StartSession(StartSessionRequest) returns (SessionResponse) {}
+  rpc StartSession(StartSessionRequest) returns (stream SessionResponse) {}
   
   // Check session status by ID
   rpc CheckSessionStatus(SessionStatusRequest) returns (SessionStatusResponse) {}
@@ -22,13 +22,15 @@ message StartSessionRequest {}
 
 // Response containing session details
 message SessionResponse {
-  string session_id = 1;
+  int64 session_id = 1;
   string qr_code = 2;
+  string jid = 3;  // WhatsApp ID of the user
+  string status = 4;  // Can be "connected", "disconnected", "error"
 }
 
 // Request to check session status
 message SessionStatusRequest {
-  string session_id = 1;
+  string jid = 1;
 }
 
 // Response with session status
@@ -39,7 +41,7 @@ message SessionStatusResponse {
 
 // Request for sending a message
 message SendMessageRequest {
-  string session_id = 1;
+  string sender_jid = 1;
   string to_phone_number = 2;
   string message_content = 3;
 }
